@@ -1,8 +1,57 @@
 # VeriTrade
 
-**VeriTrade** is a **governed trading desk** demo: market context → strategy signal → **risk verdict** → signed **intent** (with commitment hash) → **paper** execution → durable **artifacts** and an **operator UI** that makes the path legible.
+VeriTrade is a **governed autonomous trading workstation** that ingests **configurable market data** (including **live Kraken** when enabled in `.env`) to drive paper-trading decisions, applies risk checks before action, records intent and execution artifacts, and makes the full decision path visible in a chart-first operator UI.
 
-It is built for hackathon judging: **Kraken-shaped** market and execution surfaces (CLI draft, gates), **ERC-8004-style** trust themes (identity, validation, binding), and a **combined** narrative you can verify in the API and UI—**without** live money or venue orders in the default configuration.
+It is designed to demonstrate:
+
+- **live market ingestion**
+- **autonomous paper trading**
+- **risk-gated decision making**
+- **intent commitment and validation artifacts**
+- **operator visibility across spot and futures-style lanes**
+
+## What is live vs simulated
+
+| Surface | Default |
+|---------|---------|
+| Execution | **Paper / simulated only** — no live orders by default (`ALLOW_REAL_ORDERS=false`, `ENABLE_LIVE_TRADING=false`) |
+| Market data | **Configurable** — demo/synthetic or Kraken-backed paths via `.env` |
+| Proof trail | **Real** — DB + filesystem artifacts are recorded and surfaced in the UI and API |
+
+## Judge fast path
+
+Start here: **[JUDGES_START_HERE.md](JUDGES_START_HERE.md)**
+
+That file gives the shortest path to:
+
+- running the app
+- opening the right mode
+- understanding what is live vs simulated
+- finding the proof / trust surfaces
+
+## Quick start
+
+**Requirements:** Python 3.11+, Node.js 20+
+
+Use **two terminals** — the API keeps running in the first while the web dev server runs in the second.
+
+**Terminal 1 — API**
+
+```powershell
+copy .env.example .env
+python -m pip install -e "apps/api[dev]"
+python -m uvicorn app.main:app --app-dir apps\api --host 0.0.0.0 --port $env:VERITRADE_API_PORT --reload
+```
+
+**Terminal 2 — web**
+
+```powershell
+cd apps\web
+npm install
+npm run dev
+```
+
+Ports and URLs come **only** from `.env` (e.g. web **34110**, API **34120** — see `.env.example`).
 
 ---
 
@@ -16,38 +65,6 @@ It is built for hackathon judging: **Kraken-shaped** market and execution surfac
 | [docs/combined-submission.md](docs/combined-submission.md) | One narrative for dual-track reads |
 
 **API:** `GET /overview` (includes `challenge`) · `GET /challenge/context`
-
----
-
-## What is live vs simulated
-
-| Surface | Default |
-|---------|---------|
-| **Execution** | **Paper / simulated only** — no real orders (`ALLOW_REAL_ORDERS=false`, `ENABLE_LIVE_TRADING=false`) |
-| **Market data** | Configurable: demo/synthetic vs **Kraken CLI / public** paths per `.env` — see `.env.example` |
-| **Proof** | Real **DB + filesystem artifacts** from each run (auditable trail in UI and `/activity`) |
-
----
-
-## Quick start
-
-**Requirements:** Python 3.11+, Node.js 20+
-
-```powershell
-copy .env.example .env
-python -m pip install -e "apps/api[dev]"
-python -m uvicorn app.main:app --app-dir apps\api --host 0.0.0.0 --port $env:VERITRADE_API_PORT --reload
-```
-
-```powershell
-cd apps\web
-npm install
-npm run dev
-```
-
-Ports and URLs come **only** from `.env` (e.g. web **34110**, API **34120**).
-
-**Fast path for judges:** [JUDGES_START_HERE.md](JUDGES_START_HERE.md)
 
 ---
 
