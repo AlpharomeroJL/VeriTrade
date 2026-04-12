@@ -1,0 +1,64 @@
+# --- Local secrets (never commit) ---
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+*.egg-info/
+.eggs/
+dist/
+build/
+*.egg
+.pytest_cache/
+.mypy_cache/
+htmlcov/
+.coverage
+coverage.xml
+
+# --- Node / frontend ---
+node_modules/
+apps/web/node_modules/
+apps/web/dist/
+apps/web/.vite/
+playwright-report/
+blob-report/
+
+# Playwright / e2e output (regenerated; keep dir via .gitkeep)
+apps/web/test-results/*
+!apps/web/test-results/.gitkeep
+apps/web/e2e-results/*
+!apps/web/e2e-results/.gitkeep
+
+# --- Runtime / generated (never ship in public repo) ---
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+artifacts/*
+!artifacts/.gitkeep
+logs/*
+!logs/.gitkeep
+data/*
+!data/.gitkeep
+
+# Optional local scratch
+*.log
+.cache/
+
+# --- OS / editor ---
+.DS_Store
+Thumbs.db
+.cursor/
+.vscode/
+.idea/
+*.swp
+*~

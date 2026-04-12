@@ -1,0 +1,29 @@
+services:
+  veritrade-db:
+    image: postgres:16
+    container_name: veritrade-db
+    environment:
+      POSTGRES_DB: veritrade
+      POSTGRES_USER: veritrade
+      POSTGRES_PASSWORD: veritrade_local_dev_password
+    ports:
+      - "34130:5432"
+    volumes:
+      - veritrade_postgres_data:/var/lib/postgresql/data
+    networks:
+      - veritrade-net
+
+  veritrade-redis:
+    image: redis:7
+    container_name: veritrade-redis
+    ports:
+      - "34140:6379"
+    networks:
+      - veritrade-net
+
+volumes:
+  veritrade_postgres_data:
+
+networks:
+  veritrade-net:
+    name: veritrade-net
