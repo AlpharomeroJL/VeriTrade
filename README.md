@@ -1,39 +1,57 @@
 # VeriTrade
 
-VeriTrade is a **governed autonomous trading workstation** that ingests **configurable market data** (including **live Kraken** when enabled in `.env`) to drive paper-trading decisions, applies risk checks before action, records intent and execution artifacts, and makes the full decision path visible in a chart-first operator UI.
+VeriTrade is a **local demo workstation**: a **FastAPI** backend (SQLAlchemy, default **SQLite**) plus a **Vite + React** operator UI. It walks a single pipeline—**market snapshot → signal → risk → trade intent → simulated execution**—with rows and JSON **artifacts** persisted for inspection. Optional paths add **read-only Kraken public data**, **CLI-shaped order drafts** (never submitted by this repo), **two “lane” heuristics** (spot vs futures-style labels on the same paper simulator), and **ERC-8004–shaped** registration JSON plus optional JSON-RPC **read** helpers.
 
-It is designed to demonstrate:
+This README describes **what the code does**. Other Markdown under `docs/` may be older or contest-oriented; trust the implementation and tests when they disagree.
 
-- **live market ingestion**
-- **autonomous paper trading**
-- **risk-gated decision making**
-- **intent commitment and validation artifacts**
-- **operator visibility across spot and futures-style lanes**
+---
 
-## What is live vs simulated
+## Execution (read this first)
 
-| Surface | Default |
-|---------|---------|
-| Execution | **Paper / simulated only** — no live orders by default (`ALLOW_REAL_ORDERS=false`, `ENABLE_LIVE_TRADING=false`) |
-| Market data | **Configurable** — demo/synthetic or Kraken-backed paths via `.env` |
-| Proof trail | **Real** — DB + filesystem artifacts are recorded and surfaced in the UI and API |
+**There is no implemented path that sends orders to Kraken or any exchange.**
 
-## Judge fast path
+Fills always go through `execution_service.simulate_execution`, which calls `assert_paper_only()`. That function **raises** unless all of the following are true:
 
-Start here: **[JUDGES_START_HERE.md](JUDGES_START_HERE.md)**
+- `ALLOW_REAL_ORDERS` is false  
+- `ENABLE_LIVE_TRADING` is false  
+- `EXECUTION_PROVIDER` is exactly `paper` (case-insensitive)
 
-That file gives the shortest path to:
+So `ENABLE_KRAKEN_EXECUTION` and `ALLOW_REAL_ORDERS` only affect **UI/API narrative** (e.g. `kraken_surface.routing_mode`, safety strip `live_trading_enabled` when **both** flags are true). They do **not** switch the executor.
 
-- running the app
-- opening the right mode
-- understanding what is live vs simulated
-- finding the proof / trust surfaces
+**Kraken in this repo means:** HTTPS **public** ticker/OHLC (no API keys in code paths), optional **CLI** ticker via your shell template, and a **typed JSON draft** (`build_kraken_cli_order_draft`) describing what a CLI layer *could* consume—not live routing.
+
+---
+
+## What is “live” vs simulated
+
+| Surface | Behavior in code |
+|--------|-------------------|
+| **Order execution** | Always **in-process paper** fills/rejects as above. No venue order I/O. |
+| **Market tape** | **`MARKET_DATA_MODE`:** `demo` (random mock snapshots), `kraken_public` (Kraken REST ticker for BTC/ETH/SOL USD pairs), or `kraken_cli` (subprocess + `KRAKEN_MARKET_CLI_TICKER_TEMPLATE`). CLI failures fall back to mock with explicit `source` on snapshots. |
+| **“Volatility” flag on Kraken snapshots** | **Computed locally** from bid/ask spread vs mid (not Kraken’s own vol index). |
+| **OHLC / charts** | May use Kraken public OHLC when tape mode is `kraken_public` or `kraken_cli`, with **per-symbol throttling** (~55s) to limit public API calls; otherwise bars are built from stored snapshots. |
+| **Artifacts + DB** | **Real persistence**: `artifacts` table and JSON files under `ARTIFACTS_DIR`. |
+| **Trust / “fit” scores in API** | **Heuristic counters** derived from DB rows (`rubric_service`), not chain proofs or ML. |
+
+---
+
+## Operator UI (web)
+
+One SPA with three **modes** (labels in `apps/web/src/dashboard/modeCopy.ts`):
+
+1. **Guided Proof Demo** — stepwise use of seed / run / proof copy.  
+2. **Live Paper Trading** — chart, `/overview`, autonomous loop, lanes, scenarios.  
+3. **Market Watch** — same API; emphasizes tape/context. **Tape** is still whatever `MARKET_DATA_MODE` selects; there is no separate “watch-only” backend.
+
+The web client uses **`VITE_API_BASE_URL`** for all fetches (`apps/web/src/api.ts`).
+
+---
 
 ## Quick start
 
 **Requirements:** Python 3.11+, Node.js 20+
 
-Use **two terminals** — the API keeps running in the first while the web dev server runs in the second.
+Use **two terminals** — API in the first, web in the second.
 
 **Terminal 1 — API**
 
@@ -51,40 +69,73 @@ npm install
 npm run dev
 ```
 
-Ports and URLs come **only** from `.env` (e.g. web **34110**, API **34120** — see `.env.example`).
+Ports and origins must match what the API’s **`Settings`** expects: at minimum `VERITRADE_API_PORT`, `VERITRADE_API_BASE_URL`, `VERITRADE_WEB_BASE_URL`, `VERITRADE_WEB_PORT`, and `DATABASE_URL` (see `apps/api/app/config.py`). Defaults in `.env.example` use **34110** (web) and **34120** (API).
 
 ---
 
-## Challenge alignment (scoring)
+## Architecture (code-level)
 
-| Doc | Why open it |
-|-----|-------------|
-| [docs/challenge-alignment.md](docs/challenge-alignment.md) | Rubric map: Kraken, trust, artifacts |
-| [docs/map-kraken.md](docs/map-kraken.md) | What maps to Kraken (draft, routing, flags) |
-| [docs/map-erc8004.md](docs/map-erc8004.md) | Identity / validation / intent binding (draft-aligned language) |
-| [docs/erc8004-alignment.md](docs/erc8004-alignment.md) | What is implemented vs scaffolded vs **not** claimed for EIP-8004 |
-| [docs/erc8004-compliance-matrix.md](docs/erc8004-compliance-matrix.md) | Requirement × status × **proof** (evidence spine) |
-| [docs/erc8004-compliance-checklist.md](docs/erc8004-compliance-checklist.md) | Summary checklist (points to matrix) |
-| [docs/evidence/ERC8004_LOCAL_PROOF_WALKTHROUGH.md](docs/evidence/ERC8004_LOCAL_PROOF_WALKTHROUGH.md) | Anvil + `LocalProofBundle` + `prove_local_slice` |
-| [docs/evidence/PUBLIC_SEPOLIA_DEPLOY.md](docs/evidence/PUBLIC_SEPOLIA_DEPLOY.md) | **Public Sepolia** deploy + mint + HTTPS `/.well-known` binding (operator-funded) |
-| [docs/deployment/VERCEL_WEB.md](docs/deployment/VERCEL_WEB.md) | Vercel **web** root (`apps/web`), `VITE_API_BASE_URL`, prebuild `/.well-known` sync |
-| [docs/evidence/ANVIL_WALLET_ROLES.md](docs/evidence/ANVIL_WALLET_ROLES.md) | Anvil accounts **0/1/2** roles, RPC, MetaMask/Rabby |
-| [`.env.anvil.example`](.env.anvil.example) | Local-only env hints (public Anvil keys) |
-| [docs/intent-envelope.md](docs/intent-envelope.md) | SHA-256 intent commitment vs optional EIP-712 signing (dev) |
-| [docs/combined-submission.md](docs/combined-submission.md) | One narrative for dual-track reads |
+| Piece | Role |
+|--------|------|
+| **`pipeline_service`** | Core loop: ingest → candles → signal → risk → intent (if not blocked/skipped/review) → **paper** execution → artifacts → performance on fill. |
+| **`strategy_service`** | MA-style signals from 1m closes when enough candles exist; cold-start uses fewer snapshots or randomness. |
+| **`risk_engine`** | Verdicts: `allow`, `allow_with_reduction`, `block`, `escalate_for_review`, `skip`. Blocks stale snapshots **> 120s**. Duplicate guard on recent **filled** same-direction trades (default 30 min core, 2 min lanes). **`no_trade` on `SystemControl` is not toggled by any public route**—only reset in demo flows. |
+| **`lane_service`** | Two seeded lanes (`spot_momentum`, `futures_tactical`) with separate heuristics and caps; artifacts `lane_signal`, `lane_risk`, `lane_execution`. **`run_lane_once` passes `manual_pause=False` and `no_trade=False`**—global pause/no-trade do not apply to lane runs as written. |
+| **`autonomous_service`** | Background thread: if **any** lane is `running`, runs **`run_lane_once` for the first such lane** (by `lane_id` order); else runs the core pipeline. Cadence **5–120s**. Starting autonomous sets system control to **`running`**. |
+| **`kraken_skills_service`** | Separate **session** CRUD: CLI verify, briefs, watch snapshots, toy paper sessions (fixed uplift math), etc. **Not** wired into `trade_intents` / core pipeline. |
+| **`challenge/*` + `/challenge/*` routes** | Registration JSON merge, verify report, optional `web3` **view** calls, EIP-712 digest/recover/ERC-1271 helpers, static example payloads from `spec-alignment/schemas/`. |
+| **`registration.py`** | Builds agent registration from **`spec-alignment/agent-registration.json`** plus `.env` URLs and optional on-chain `registrations` / `agentWallet` fields. |
 
-**API:** `GET /overview` (includes `challenge`) · `GET /challenge/context` · `GET /challenge/agent-registration` · `GET /challenge/agent-registration/verify` · `GET /challenge/erc8004/onchain-read` · `GET /challenge/erc8004-shapes`
+**Overview payload:** `GET /overview` ties “latest” signal/intent/execution to the **latest risk decision** when one exists; otherwise it falls back to latest rows per table (`routes.overview`).
 
-VeriTrade is **ERC-8004 draft-aligned** (registration file, identity surfaces, validation-shaped examples). **Public Sepolia** deployment is **operator-run** via Foundry (`SepoliaDeployAndMint`, `PUBLIC_SEPOLIA_DEPLOY.md`); it is **not** a protocol-mandated canonical mainnet registry. The product is **not** claiming full EIP compliance — see [docs/erc8004-alignment.md](docs/erc8004-alignment.md).
+**Stale check:** `pipeline_service` calls `snapshot_is_stale` but **does not act** on it (no auto-refresh); risk still enforces the 120s rule.
 
 ---
 
-## Where to look in the app
+## HTTP API (surface)
 
-1. **Live Paper Trading** — chart-first desk, autonomous loop, lanes, operator strip.  
-2. **Guided Proof Demo** — seed → run cycle → proof trail walkthrough.  
-3. **Market Watch** — tape + Kraken session launchers without emphasizing fills.  
-4. Expand **Proof & trust** / **More tools** for pipeline, integration tiles, scenarios, raw artifacts.
+Implemented under `apps/api/app/api/routes.py` (prefix `/` on router):
+
+- **Health:** `GET /health`, `GET /ready`  
+- **Operator:** `GET /overview`, `GET /performance`, `GET /activity`, `GET /signals`, `GET /risk-decisions`, `GET /intents`, `GET /executions`, `GET /artifacts`, `GET /alerts`  
+- **Viz:** `GET /viz/market-chart` (intervals `1m`, `5m`, `15m`, `30m`, `1h`), `GET /viz/paper-session`  
+- **Control:** `POST /control/start|pause|stop`, `POST /control/manual-pause`, `POST /control/step`, `POST /control/autonomous/start|stop`  
+- **Demo:** `POST /demo/seed`, `POST /demo/run-once`, `POST /demo/scenario/{safe_allow\|volatile_block\|oversized_reduce}`  
+- **Lanes:** `GET /lanes`, `GET /lanes/{id}`, `GET /lanes/{id}/performance`, `GET /lanes/{id}/history`, `POST /lanes/{id}/start|stop|run-once`  
+- **Kraken skills:** `POST /kraken-skills/run`, `GET /kraken-skills/sessions`, `GET /kraken-skills/sessions/{id}`  
+- **Challenge / ERC-8004-shaped:** `GET /challenge/context`, `GET /challenge/agent-registration`, `GET /challenge/agent-registration/verify`, `GET /challenge/erc8004-shapes`, `GET /challenge/erc8004/onchain-read`  
+- **Intents:** `GET /intents/{id}/signature-verification` (EIP-712 digest, optional recovery, optional ERC-1271 `eth_call`)
+
+Schemas live in `apps/api/app/schemas/api.py`.
+
+---
+
+## Configuration
+
+**Source of truth for the API:** `apps/api/app/config.py` (`pydantic-settings`, `extra="ignore"`).
+
+`.env.example` lists many variables; **only those mapped in `Settings` affect Python**. For example, flags like `ENABLE_DEMO_SEED`, `ENABLE_REPLAY_VIEW`, `DATABASE_PROVIDER`, Redis/Postgres URLs, `KRAKEN_API_KEY`, etc. are **not read** by `Settings` and **do not change** FastAPI behavior unless you add code or external tooling.
+
+Important execution and market keys that **are** read: `TRADING_MODE`, `EXECUTION_PROVIDER`, `ENABLE_LIVE_TRADING`, `ALLOW_REAL_ORDERS`, `ENABLE_KRAKEN_EXECUTION`, `MARKET_DATA_MODE`, `KRAKEN_MARKET_CLI_*`, `KRAKEN_CLI_*`, `ARTIFACTS_DIR`, `DATABASE_URL`, ERC-8004 / EIP-712 fields as defined on `Settings`.
+
+**Misconfiguration note:** if `EXECUTION_PROVIDER` is not `paper`, the app will **throw** when it tries to execute—there is no alternate executor implemented.
+
+---
+
+## Agent registration file (static web)
+
+- **Runtime JSON:** `GET /challenge/agent-registration` (merged template + env).  
+- **Committed static copy:** `apps/web/public/.well-known/agent-registration.json` (localhost template).  
+- **Prebuild:** `apps/web/scripts/sync-public-agent-registration.mjs` runs before `vite build`. On **Vercel**, the build **fails** if public web + API bases cannot be resolved. Locally it **skips** unless `VERITRADE_PUBLIC_WEB_BASE_URL` **and** `VITE_API_BASE_URL` (or `VERITRADE_PUBLIC_API_BASE_URL`) are set.
+
+Template: `spec-alignment/agent-registration.json`.
+
+---
+
+## Optional on-chain demos
+
+- **`local-registry/`** — Foundry contracts (Anvil / testnet demos): identity, validation, reputation helpers; **not** audited production registries.  
+- **Artifact → `validationRequest` tx** — **off by default** (`ERC8004_ARTIFACT_VALIDATION_EMIT_ENABLED`); requires RPC, key, registry, validator, numeric agent id; failures do not block artifact writes.
 
 ---
 
@@ -94,7 +145,7 @@ VeriTrade is **ERC-8004 draft-aligned** (registration file, identity surfaces, v
 python -m pytest tests -q
 ```
 
-**Playwright** (from `apps/web` after `npm install`): `npx playwright install chromium` then `npm run test:e2e`. Soak reports (if you run them) stay under `apps/web/e2e-results/` — **gitignored**.
+**Playwright** (from `apps/web` after `npm install`): `npx playwright install chromium` then `npm run test:e2e`. Reports under `apps/web/e2e-results/` are **gitignored**.
 
 ---
 
@@ -102,30 +153,27 @@ python -m pytest tests -q
 
 | Path | Role |
 |------|------|
-| `apps/api/` | FastAPI app, services, Kraken adapters, challenge context |
-| `apps/web/` | Vite + React operator console |
-| `tests/` | Pytest (integration, risk, intent, lanes, viz) |
-| `scripts/` | `dev-api.ps1`, `dev-web.ps1`, `export_agent_registration_static.py` |
-| `local-registry/` | Optional Foundry contracts for **Anvil-only** Identity / Validation / Reputation event demos |
-| `docs/` | Architecture, trust, challenge maps, lean submission notes |
-| `compose.yaml` | Optional Postgres/Redis — **not** required for SQLite demo |
-
----
-
-## Submission helpers (optional)
-
-| Doc |
-|-----|
-| [docs/submission/summary.md](docs/submission/summary.md) |
-| [docs/submission/submission-description.md](docs/submission/submission-description.md) |
-| [docs/submission/demo-flow-finalist.md](docs/submission/demo-flow-finalist.md) |
-| [docs/submission/finalist-screenshots.md](docs/submission/finalist-screenshots.md) |
-| [docs/submission/screenshot-checklist.md](docs/submission/screenshot-checklist.md) |
-
-Deeper architecture and demo detail: [docs/architecture.md](docs/architecture.md), [docs/demo-script.md](docs/demo-script.md), [docs/trust-and-risk.md](docs/trust-and-risk.md), [docs/known-gaps.md](docs/known-gaps.md).
+| `apps/api/` | FastAPI app (`app/main.py`, `app/api/routes.py`, services, adapters, `challenge/`) |
+| `apps/web/` | Vite + React UI, Playwright e2e, `public/.well-known/` |
+| `tests/` | Pytest |
+| `scripts/` | Helpers (e.g. `export_agent_registration_static.py`, `scripts/erc8004/*`) |
+| `spec-alignment/` | Registration template + example JSON schemas |
+| `local-registry/` | Solidity + Foundry scripts for local/testnet demos |
+| `docs/` | Extra notes, deployment, evidence (may lag code) |
+| `compose.yaml` | **Only** Postgres 16 and Redis 7 — **no app container**; API still defaults to SQLite without Compose |
 
 ---
 
 ## Docker
 
-[compose.yaml](compose.yaml) — optional services on separate ports; default demo uses **SQLite** without Compose.
+`compose.yaml` starts **database and cache only** on the mapped ports. The default dev flow does **not** require Docker; point `DATABASE_URL` at Postgres only if you wire that yourself (the example app code is built around SQLAlchemy generically, but day-to-day demo is SQLite).
+
+---
+
+## Further reading (may not match every detail of `main`)
+
+- [START_HERE.md](START_HERE.md) — short navigation.  
+- [JUDGES_START_HERE.md](JUDGES_START_HERE.md) — quick demo path (verify against this README if something looks off).  
+- `docs/` — challenge alignment, deployment (e.g. Vercel), ERC-8004 narrative; **treat as supplementary**.
+
+When in doubt, read **`apps/api/app/config.py`**, **`apps/api/app/api/routes.py`**, and **`apps/api/app/services/`**.

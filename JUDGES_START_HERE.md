@@ -1,6 +1,6 @@
 # Judges — start here
 
-Five-minute path to a fair read of VeriTrade.
+Short path to run VeriTrade and see what the **code** actually does. Details: [README.md](README.md).
 
 ## 1. Install and run
 
@@ -18,36 +18,42 @@ npm install
 npm run dev
 ```
 
-Open the **web URL** from `.env` (default in `.env.example` is often `http://127.0.0.1:34110`).
+Open the **web URL** from `.env` (`VERITRADE_WEB_BASE_URL`; `.env.example` often uses `http://127.0.0.1:34110`). Set **`VITE_API_BASE_URL`** in `apps/web/.env` or your environment to the same origin you use for `VERITRADE_API_BASE_URL` (e.g. `http://127.0.0.1:34120`) so the SPA can reach the API.
 
 ## 2. Open **Live Paper Trading**
 
-In the app header, click **Live Paper Trading**.
+In the app header, choose **Live Paper Trading** (chart-first desk).
 
 **What you should see first**
 
-- A **status rail** (tape source, paper execution, autonomous state, lane/loop, timestamps).
-- A **large chart** (OHLC + decision markers) and a **right-hand column**: current story, market → bot → risk → execution, and “what changed”.
-- An **operator strip**: equity, P/L, drawdown, mode, risk, execution, **autonomous** controls, **Run cycle** / seed / risk pause / stop.
+- A **status rail**: tape source (`MARKET_DATA_MODE`), execution line (`TRADING_MODE` / `EXECUTION_PROVIDER`), autonomous on/off, lane scope, refresh/tape times.
+- A **chart** (OHLC + markers from recent intents/executions) and a **decision column**: story, market → bot → risk → execution.
+- **Controls**: start / pause / stop, manual risk pause, **Run cycle**, demo **seed**, autonomous start/stop, lane run/start/stop when exposed in this mode.
 
 ## 3. What is **simulated** vs **live**
 
 | | |
 |--|--|
-| **Simulated** | Order **fills** and portfolio moves are **paper only**. Default flags block real orders. |
-| **Can be live (config)** | **Public market data** may come from **Kraken-backed** paths when enabled in `.env` — still **no** automatic real-money execution in this submission default. |
+| **Always simulated (this repo)** | **Order fills** — only `execution_service.simulate_execution` runs. There is **no** code path that submits orders to Kraken or any venue. `ENABLE_KRAKEN_EXECUTION` + `ALLOW_REAL_ORDERS` only change **labels** in the API (`kraken_surface`, safety strip); they do **not** switch the executor. **`EXECUTION_PROVIDER` must stay `paper`** or execution raises. |
+| **Can be “live” tape (config)** | **Prices**: `MARKET_DATA_MODE=kraken_public` uses Kraken **public** HTTPS ticker (and optional OHLC) for BTC/ETH/SOL USD-style symbols. `kraken_cli` uses your `KRAKEN_MARKET_CLI_TICKER_TEMPLATE` subprocess; on failure the API falls back to mock snapshots with an explicit `source`. **No API keys are required** for the HTTPS ticker path in code. |
+| **Persisted “proof”** | **SQLite** rows and **`ARTIFACTS_DIR`** JSON files — real for the session, not blockchain truth unless you separately deploy contracts and set env vars. |
 
-Check badges in the shell and the hero rail; read `ALLOW_REAL_ORDERS` / `ENABLE_LIVE_TRADING` / `MARKET_DATA_MODE` in `.env.example`.
+Check the hero rail and `GET /overview` → `safety_strip` and `challenge.kraken_surface`.
 
-## 4. Proof and validation
+## 4. Proof, trust, and ERC-8004-shaped surfaces
 
-- In **Live Paper**, scroll to **Proof & trust** (collapsed section) — open for **proof trail**, **pipeline**, **integration** (identity / Kraken surface / fit checklist), and **structured artifact** cards.  
-- **API:** `GET /overview` includes `challenge` (with **`erc8004_draft`** — draft-aligned, not “fully compliant”) and safety strip fields aligned to the UI.
-- **ERC-8004 (draft-aligned + local + public testnet path):** open **`GET {API}/challenge/agent-registration`** for the EIP-shaped registration JSON; **`GET /challenge/agent-registration/verify`** for same-host / fetch checks, **`registrations_agent_uri`** (on-chain `agentURI` document fetch), and optional **`transport_observation`** on `https://` URLs (not CA “HTTPS verified”); **`GET /challenge/erc8004/onchain-read`** for optional JSON-RPC reads (`getValidationStatus`, identity incl. **`agentWallet`**, `getMetadata`, **`feedbackCount`**, **`getFeedback`**); **`GET /intents/{id}/signature-verification`** for EIP-712 digest + recovery + optional ERC-1271 `eth_call` (primary verifying contract + optional **`VERITRADE_EIP1271_SECONDARY_VERIFIER`**); **`GET /challenge/erc8004-shapes`** for validation/reputation *example* payloads. **Evidence spine:** [docs/erc8004-compliance-matrix.md](docs/erc8004-compliance-matrix.md). **Anvil:** [docs/evidence/ANVIL_WALLET_ROLES.md](docs/evidence/ANVIL_WALLET_ROLES.md), `prove_local_slice`, [ERC8004_LOCAL_PROOF_WALKTHROUGH.md](docs/evidence/ERC8004_LOCAL_PROOF_WALKTHROUGH.md), `LocalProofBundle.s.sol`. **Public Sepolia (operator):** [docs/evidence/PUBLIC_SEPOLIA_DEPLOY.md](docs/evidence/PUBLIC_SEPOLIA_DEPLOY.md), `SepoliaDeployAndMint.s.sol`, [VERCEL_WEB.md](docs/deployment/VERCEL_WEB.md). Read [docs/erc8004-alignment.md](docs/erc8004-alignment.md) for what is real vs simulated vs scaffolded.
+- In **Live Paper**, expand **Proof & trust** for artifact trail, pipeline copy, and integration tiles driven from **`GET /overview`** (`challenge`, `rubric_metrics`, `challenge_fit`, `safety_strip`, `lane_trust`). **`challenge_fit` includes booleans that are partly hardcoded in code** (e.g. `combined_submission_story`, `erc8004_agent_registration_available`); **`trust_score_*` values are heuristics** from DB counts, not audits.
+- **`GET /challenge/agent-registration`** — registration JSON merged from `spec-alignment/agent-registration.json` + your `.env` URLs; `registrations` is non-empty only when **both** `ERC8004_IDENTITY_REGISTRY_ADDRESS` and `ERC8004_ONCHAIN_AGENT_ID` are set.
+- **`GET /challenge/agent-registration/verify`** — fetches static `/.well-known/agent-registration.json` vs API JSON, host comparisons, optional TLS **observation** (not CA proof), optional fetch of `agentURI` from the first registration entry.
+- **`GET /challenge/erc8004/onchain-read`** — optional JSON-RPC **read** calls when `ERC8004_RPC_URL` and registry addresses are set (`web3`). Skips with explicit reasons when not configured.
+- **`GET /challenge/erc8004-shapes`** — static **example** JSON from `spec-alignment/schemas/`.
+- **`GET /intents/{id}/signature-verification`** — SHA-256 commitment, EIP-712 digest/recover when signature present, optional ERC-1271 `eth_call` when RPC + verifying contract env vars are set (optional secondary verifier).
+
+On-chain demos, Anvil scripts, Sepolia deploy notes, and matrices live under **`docs/`** and **`local-registry/`** — useful for procedure, but **[README.md](README.md) is the accuracy anchor** for runtime behavior.
 
 ## 5. Optional checks
 
-- **Guided Proof Demo** — stepwise seed + run + trail.  
+- **Guided Proof Demo** — same API; stepwise seed/run UI.
 - **Tests:** from repo root, `python -m pytest tests -q`.
 
-For rubric language and mappings: [docs/challenge-alignment.md](docs/challenge-alignment.md).
+Rubric-oriented wording: `docs/challenge-alignment.md` (may not match every line of code).
