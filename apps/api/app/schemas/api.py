@@ -51,8 +51,26 @@ class IntentOut(BaseModel):
     market_type: str | None = None
     strategy_family: str | None = None
     capital_bucket: float | None = None
+    eip712_signature: str | None = None
+    eip712_signer: str | None = None
+    eip712_chain_id: int | None = None
 
     model_config = {"from_attributes": True}
+
+
+class IntentSignatureVerificationOut(BaseModel):
+    """EIP-712 digest + optional EOA recover + optional ERC-1271 eth_call (adapter verifyingContract)."""
+
+    intent_id: int
+    intent_commitment_sha256: str
+    eip712_digest_hex: str
+    eip712_typed_data: dict | None = None
+    eip712_typed_data_included: bool = False
+    eip712_recovered_address: str | None = None
+    eip712_signature_valid_for_digest: bool | None = None
+    eip1271_eth_call: dict | None = None
+    eip1271_secondary_eth_call: dict | None = None
+    notes: list[str] = Field(default_factory=list)
 
 
 class ExecutionOut(BaseModel):
@@ -125,11 +143,33 @@ class KrakenSurfaceOut(BaseModel):
     latest_order_draft: dict | None = None
 
 
+class Erc8004DraftSurfacesOut(BaseModel):
+    """Truthful ERC-8004 (draft) alignment — off-chain / not a compliance claim."""
+
+    eip_draft_url: str = "https://eips.ethereum.org/EIPS/eip-8004"
+    alignment: str = "draft_aligned_off_chain"
+    identity_registry: str = "not_deployed_in_this_repo"
+    agent_uri_effective: str | None = None
+    agent_registration_url: str
+    agent_registration_static_url: str
+    agent_wallet_placeholder: str | None = None
+    on_chain_validation_attested: bool = False
+    intent_binding_scheme: str = "SHA256_canonical_intent_json"
+    validation_request_hash_algorithm: str = "keccak256_for_registry_shaped_payloads"
+    erc8004_dev_chain_id: int | None = None
+    erc8004_identity_registry_address: str | None = None
+    erc8004_onchain_agent_id: str | None = None
+    erc8004_validation_registry_address: str | None = None
+    erc8004_reputation_registry_address: str | None = None
+    intent_eip712_mode: str = "outline_only"
+
+
 class ChallengeContextOut(BaseModel):
-    """Hackathon rubric alignment: Kraken path + ERC-8004-style identity + trust signals."""
+    """Hackathon rubric alignment: Kraken path + ERC-8004 draft-aligned identity + trust signals."""
 
     agent_id: str
     erc8004_agent_uri_stub: str | None = None
+    erc8004_draft: Erc8004DraftSurfacesOut
     policy_version: str
     intent_commitment_algorithm: str
     trust_signals: list[str]
@@ -201,6 +241,7 @@ class ChallengeFitOut(BaseModel):
 
     kraken_execution_surface_aligned: bool
     erc8004_identity_hooks: bool
+    erc8004_agent_registration_available: bool
     combined_submission_story: bool
     paper_safe_demo_mode: bool
     risk_router_active: bool

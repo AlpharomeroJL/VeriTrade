@@ -3,7 +3,33 @@ from datetime import datetime
 
 from sqlalchemy.orm import Session
 
+from app.challenge.eip712_intent import (
+    eip712_signing_configured,
+    sign_trade_intent_typed_data,
+    verify_trade_intent_typed_data,
+)
+from app.config import get_settings
 from app.models import TradeIntent
+
+
+def _attach_eip712_if_configured(db: Session, row: TradeIntent) -> None:
+    s = get_settings()
+    if not eip712_signing_configured(s):
+        return
+    pk = (s.veritrade_intent_signer_private_key or "").strip()
+    try:
+        sig, _addr = sign_trade_intent_typed_data(s, row, pk)
+    except Exception:
+        return
+    recovered = verify_trade_intent_typed_data(s, row, signature_hex=sig)
+    if not recovered:
+        return
+    row.eip712_signature = sig
+    row.eip712_signer = recovered
+    row.eip712_chain_id = s.erc8004_dev_chain_id
+    db.add(row)
+    db.commit()
+    db.refresh(row)
 
 
 def create_intent(
@@ -51,4 +77,5 @@ def create_intent(
     db.add(row)
     db.commit()
     db.refresh(row)
+    _attach_eip712_if_configured(db, row)
     return row

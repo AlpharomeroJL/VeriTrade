@@ -154,6 +154,7 @@ def compute_challenge_fit(
     return ChallengeFitOut(
         kraken_execution_surface_aligned=kraken_aligned,
         erc8004_identity_hooks=bool(stub),
+        erc8004_agent_registration_available=True,
         combined_submission_story=True,
         paper_safe_demo_mode=settings.trading_mode == "paper" and not settings.allow_real_orders,
         risk_router_active=risk_n > 0,

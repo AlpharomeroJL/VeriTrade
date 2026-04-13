@@ -8,7 +8,7 @@ This overnight build optimizes for **judge comprehension** and a **working end-t
 
 **Trust narrative (judges):** [trust-and-risk.md](trust-and-risk.md) — how provenance, policy, intent-first execution, artifacts, and paper default combine into a credible story.
 
-**Challenge / rubric:** [challenge-alignment.md](challenge-alignment.md) — Kraken surface, ERC-8004-flavored identity, `GET /challenge/context`.
+**Challenge / rubric:** [challenge-alignment.md](challenge-alignment.md) — Kraken surface, ERC-8004 **draft-aligned** identity + registration file, `GET /challenge/context`, `GET /challenge/agent-registration`. See [erc8004-alignment.md](erc8004-alignment.md).
 
 ## Components
 

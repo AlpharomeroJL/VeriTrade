@@ -1,0 +1,13 @@
+{
+  "_comment": "LOCAL / OFF-CHAIN ONLY — not submitted to a live Reputation Registry. Maps toward EIP-8004 off-chain feedback file structure.",
+  "agentRegistry": "local:veritrade:not_deployed",
+  "agentId": 0,
+  "clientAddress": "local:operator-session",
+  "createdAt": "2026-04-12T12:00:00Z",
+  "value": 87,
+  "valueDecimals": 0,
+  "tag1": "artifact_integrity",
+  "tag2": "paper_session",
+  "endpoint": "http://127.0.0.1:34110/",
+  "detail": "Hypothetical feedback record illustrating how lane trust / artifact counts could later map to on-chain giveFeedback()."
+}

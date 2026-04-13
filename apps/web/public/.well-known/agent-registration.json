@@ -1,0 +1,35 @@
+{
+  "type": "https://eips.ethereum.org/EIPS/eip-8004#registration-v1",
+  "name": "VeriTrade Operator Agent",
+  "description": "Governed autonomous trading workstation: configurable market ingestion (including Kraken when enabled), risk-gated decisions, SHA-256 intent commitments over canonical fields, paper-only execution by default, and DB/filesystem validation artifacts. This registration file is draft-aligned and off-chain until an Identity Registry mint exists. Default service URLs match .env.example; override via .env and use GET /challenge/agent-registration for runtime-accurate endpoints.",
+  "image": "http://127.0.0.1:34110/veritrade-agent.svg",
+  "services": [
+    {
+      "name": "web",
+      "endpoint": "http://127.0.0.1:34110/",
+      "version": "1.0.0"
+    },
+    {
+      "name": "http",
+      "endpoint": "http://127.0.0.1:34120/docs",
+      "version": "openapi"
+    },
+    {
+      "name": "http",
+      "endpoint": "http://127.0.0.1:34120/challenge/context",
+      "version": "1.0.0"
+    },
+    {
+      "name": "http",
+      "endpoint": "http://127.0.0.1:34120/challenge/agent-registration",
+      "version": "1.0.0"
+    }
+  ],
+  "x402Support": false,
+  "active": true,
+  "registrations": [],
+  "supportedTrust": [
+    "reputation",
+    "crypto-economic"
+  ]
+}

@@ -98,6 +98,9 @@ class TradeIntent(Base):
     market_type: Mapped[str | None] = mapped_column(String(16), nullable=True)
     strategy_family: Mapped[str | None] = mapped_column(String(64), nullable=True)
     capital_bucket: Mapped[float | None] = mapped_column(Float, nullable=True)
+    eip712_signature: Mapped[str | None] = mapped_column(Text, nullable=True)
+    eip712_signer: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    eip712_chain_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
 
 class Execution(Base):

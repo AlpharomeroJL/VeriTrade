@@ -1,3 +1,6 @@
+import json
+from pathlib import Path
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import desc, select
 from sqlalchemy.orm import Session
@@ -16,7 +19,16 @@ from app.models import (
 )
 from app.adapters.kraken_public_market import TOP_UI_SYMBOLS
 from app.challenge.context import build_challenge_context
+from app.challenge.eip1271_intent import verify_eip1271_is_valid_signature, verify_trade_intent_eip1271_adapter
+from app.challenge.eip712_intent import (
+    build_trade_intent_typed_data,
+    trade_intent_eip712_digest_hex,
+    verify_trade_intent_typed_data,
+)
 from app.challenge.intent_commitment import intent_commitment_sha256
+from app.challenge.onchain_registry import build_onchain_read_report
+from app.challenge.registration import build_agent_registration
+from app.challenge.registration_verify import build_agent_registration_verification_report
 from app.schemas.api import (
     ActivityItem,
     AlertOut,
@@ -26,6 +38,7 @@ from app.schemas.api import (
     ControlStateOut,
     ExecutionOut,
     IntentOut,
+    IntentSignatureVerificationOut,
     KrakenSkillRunRequest,
     KrakenSkillSessionOut,
     LaneHistoryItemOut,
@@ -179,6 +192,79 @@ def challenge_context(db: Session = Depends(get_db)):
     return build_challenge_context(latest_intent, snap)
 
 
+@router.get("/challenge/agent-registration")
+def challenge_agent_registration():
+    """ERC-8004 draft-shaped registration file; endpoints reflect current .env."""
+    return build_agent_registration(get_settings())
+
+
+@router.get("/challenge/agent-registration/verify")
+def challenge_agent_registration_verify():
+    """Truthful same-origin / payload checks for static vs API registration JSON (see docs)."""
+    return build_agent_registration_verification_report(get_settings())
+
+
+def _spec_path(*parts: str) -> Path:
+    return Path(__file__).resolve().parents[4] / "spec-alignment" / Path(*parts)
+
+
+@router.get("/challenge/erc8004-shapes")
+def challenge_erc8004_shapes():
+    """Example off-chain JSON aligned with Validation / Reputation registry narratives (not on-chain)."""
+
+    def _load(rel: str) -> dict:
+        p = _spec_path(*rel.split("/"))
+        return json.loads(p.read_text(encoding="utf-8"))
+
+    return {
+        "validation_request_example": _load("schemas/validation-request.example.json"),
+        "validation_response_example": _load("schemas/validation-response.example.json"),
+        "reputation_feedback_offchain_example": _load("schemas/reputation-feedback.offchain.example.json"),
+    }
+
+
+@router.get("/challenge/erc8004/onchain-read")
+def challenge_erc8004_onchain_read(
+    validation_request_hash: str | None = Query(
+        default=None,
+        description="Optional 0x-bytes32; when set with validation registry + RPC, calls getValidationStatus",
+    ),
+    reputation_client_address: str | None = Query(
+        default=None,
+        description="With reputation registry + RPC + onchain agent id, calls feedbackCount(client, agentId)",
+    ),
+    identity_metadata_key: str | None = Query(
+        default=None,
+        description="With identity registry + RPC + onchain agent id, calls getMetadata(agentId, key)",
+    ),
+    reputation_feedback_index: int | None = Query(
+        default=None,
+        ge=0,
+        description="With reputation registry + client + onchain agent id, calls getFeedback(client, agentId, index)",
+    ),
+):
+    """
+    Read-only view of optional local-registry contracts via JSON-RPC.
+
+    Evidence surface for judges: no writes, no CA/DNS claims.
+    """
+    s = get_settings()
+    aid = (s.erc8004_onchain_agent_id or "").strip()
+    agent_id_int: int | None = int(aid) if aid.isdigit() else None
+    return build_onchain_read_report(
+        (s.erc8004_rpc_url or "").strip() or None,
+        (s.erc8004_validation_registry_address or "").strip() or None,
+        (s.erc8004_identity_registry_address or "").strip() or None,
+        (s.erc8004_reputation_registry_address or "").strip() or None,
+        aid or None,
+        (validation_request_hash or "").strip() or None,
+        (reputation_client_address or "").strip() or None,
+        agent_id_int,
+        (identity_metadata_key or "").strip() or None,
+        reputation_feedback_index,
+    )
+
+
 @router.get("/performance", response_model=list[PerformanceOut])
 def performance_list(db: Session = Depends(get_db), limit: int = 50):
     q = select(PerformanceSnapshot).order_by(desc(PerformanceSnapshot.timestamp)).limit(min(limit, 200))
@@ -278,6 +364,63 @@ def risk_decisions(db: Session = Depends(get_db), limit: int = 50):
 def intents(db: Session = Depends(get_db), limit: int = 50):
     q = select(TradeIntent).order_by(desc(TradeIntent.created_at)).limit(min(limit, 200))
     return [IntentOut.model_validate(r) for r in db.execute(q).scalars().all()]
+
+
+@router.get("/intents/{intent_id}/signature-verification", response_model=IntentSignatureVerificationOut)
+def intent_signature_verification(
+    intent_id: int,
+    db: Session = Depends(get_db),
+    include_typed_data: bool = False,
+):
+    """EIP-712 digest, EOA recovery, and optional ERC-1271 eth_call when RPC + verifying contract are configured."""
+    row = db.get(TradeIntent, intent_id)
+    if row is None:
+        raise HTTPException(status_code=404, detail="intent_not_found")
+    s = get_settings()
+    commitment = intent_commitment_sha256(row)
+    digest_hex = trade_intent_eip712_digest_hex(s, row)
+    notes: list[str] = []
+
+    recovered: str | None = None
+    sig_ok: bool | None = None
+    if row.eip712_signature:
+        recovered = verify_trade_intent_typed_data(s, row, signature_hex=row.eip712_signature)
+        if recovered and row.eip712_signer:
+            sig_ok = recovered.lower() == (row.eip712_signer or "").lower()
+        elif recovered:
+            sig_ok = True
+
+    eip1271: dict | None = None
+    eip1271_secondary: dict | None = None
+    rpc = (s.erc8004_rpc_url or "").strip()
+    vc = (s.veritrade_intent_eip712_verifying_contract or "").strip()
+    if rpc and vc and row.eip712_signature and vc.lower() != "0x0000000000000000000000000000000000000000":
+        eip1271 = verify_trade_intent_eip1271_adapter(rpc, vc, digest_hex, row.eip712_signature)
+    elif not rpc:
+        notes.append("ERC8004_RPC_URL unset; skipped ERC-1271 eth_call.")
+    elif not row.eip712_signature:
+        notes.append("No eip712_signature on intent; skipped ERC-1271 eth_call.")
+
+    vc2 = (s.veritrade_eip1271_secondary_verifier or "").strip()
+    if rpc and vc2 and row.eip712_signature and vc2.lower() != "0x0000000000000000000000000000000000000000":
+        eip1271_secondary = verify_eip1271_is_valid_signature(rpc, vc2, digest_hex, row.eip712_signature)
+    elif vc2 and not rpc:
+        notes.append("VERITRADE_EIP1271_SECONDARY_VERIFIER set but ERC8004_RPC_URL unset; skipped secondary ERC-1271.")
+
+    typed_payload: dict | None = build_trade_intent_typed_data(s, row) if include_typed_data else None
+
+    return IntentSignatureVerificationOut(
+        intent_id=row.id,
+        intent_commitment_sha256=commitment,
+        eip712_digest_hex=digest_hex,
+        eip712_typed_data=typed_payload,
+        eip712_typed_data_included=bool(typed_payload),
+        eip712_recovered_address=recovered,
+        eip712_signature_valid_for_digest=sig_ok,
+        eip1271_eth_call=eip1271,
+        eip1271_secondary_eth_call=eip1271_secondary,
+        notes=notes,
+    )
 
 
 @router.get("/executions", response_model=list[ExecutionOut])

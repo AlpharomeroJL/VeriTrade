@@ -32,6 +32,44 @@ class Settings(BaseSettings):
 
     veritrade_agent_id: str = Field(default="veritrade-agent-demo", alias="VERITRADE_AGENT_ID")
     erc8004_agent_uri_stub: str = Field(default="", alias="ERC8004_AGENT_URI_STUB")
+    # Placeholder only — not a verified agentWallet on any Identity Registry.
+    veritrade_agent_wallet_placeholder: str = Field(default="", alias="VERITRADE_AGENT_WALLET_PLACEHOLDER")
+
+    # Local Anvil / dev-chain registry binding (optional). When both identity + agent id are set,
+    # `GET /challenge/agent-registration` includes `registrations[]` pointing at the minted identity.
+    erc8004_dev_chain_id: int = Field(default=31337, alias="ERC8004_DEV_CHAIN_ID")
+    erc8004_identity_registry_address: str = Field(default="", alias="ERC8004_IDENTITY_REGISTRY_ADDRESS")
+    erc8004_onchain_agent_id: str = Field(default="", alias="ERC8004_ONCHAIN_AGENT_ID")
+    erc8004_validation_registry_address: str = Field(default="", alias="ERC8004_VALIDATION_REGISTRY_ADDRESS")
+    erc8004_reputation_registry_address: str = Field(default="", alias="ERC8004_REPUTATION_REGISTRY_ADDRESS")
+    # Optional JSON-RPC for read-only / ERC-1271 eth_call checks (Anvil / testnet). Not used by trading loop.
+    erc8004_rpc_url: str = Field(default="", alias="ERC8004_RPC_URL")
+
+    # Optional: emit validationRequest txs when selected artifact types are written (off by default; never blocks writes).
+    erc8004_artifact_validation_emit_enabled: bool = Field(default=False, alias="ERC8004_ARTIFACT_VALIDATION_EMIT_ENABLED")
+    erc8004_artifact_validation_trigger_types: str = Field(
+        default="execution,lane_execution",
+        alias="ERC8004_ARTIFACT_VALIDATION_TRIGGER_TYPES",
+        description="Comma-separated artifact_type values that may trigger validationRequest when emit is enabled.",
+    )
+    erc8004_artifact_validation_private_key: str = Field(default="", alias="ERC8004_ARTIFACT_VALIDATION_PRIVATE_KEY")
+    erc8004_artifact_validation_registry_address: str = Field(
+        default="",
+        alias="ERC8004_ARTIFACT_VALIDATION_REGISTRY_ADDRESS",
+        description="When set, overrides ERC8004_VALIDATION_REGISTRY_ADDRESS for artifact-driven validationRequest txs.",
+    )
+    erc8004_artifact_validation_validator_address: str = Field(
+        default="", alias="ERC8004_ARTIFACT_VALIDATION_VALIDATOR_ADDRESS"
+    )
+
+    # Optional second ERC-1271 verifying contract (same digest + signature) for GET /intents/{id}/signature-verification.
+    veritrade_eip1271_secondary_verifier: str = Field(default="", alias="VERITRADE_EIP1271_SECONDARY_VERIFIER")
+
+    # EIP-712 trade intent signing (optional, local dev). Never commit a real private key.
+    veritrade_intent_eip712_domain_name: str = Field(default="VeriTrade", alias="VERITRADE_INTENT_EIP712_DOMAIN_NAME")
+    veritrade_intent_eip712_domain_version: str = Field(default="1", alias="VERITRADE_INTENT_EIP712_DOMAIN_VERSION")
+    veritrade_intent_eip712_verifying_contract: str = Field(default="", alias="VERITRADE_INTENT_EIP712_VERIFYING_CONTRACT")
+    veritrade_intent_signer_private_key: str = Field(default="", alias="VERITRADE_INTENT_SIGNER_PRIVATE_KEY")
 
     default_symbol: str = Field(default="BTCUSD", alias="DEFAULT_SYMBOL")
     # demo = synthetic tape; kraken_public = Kraken /public/Ticker over HTTPS; kraken_cli = external Kraken CLI binary.

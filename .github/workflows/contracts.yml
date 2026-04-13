@@ -1,0 +1,36 @@
+name: Solidity (local-registry)
+
+on:
+  push:
+    paths:
+      - "local-registry/**"
+      - ".github/workflows/contracts.yml"
+  pull_request:
+    paths:
+      - "local-registry/**"
+  workflow_dispatch:
+
+jobs:
+  forge:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: local-registry
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+
+      - name: Install dependencies
+        run: |
+          forge install foundry-rs/forge-std@v1.9.4 --no-git
+          forge install OpenZeppelin/openzeppelin-contracts@v5.0.2 --no-git
+
+      - name: Build
+        run: forge build
+
+      - name: Test
+        run: forge test -vvv

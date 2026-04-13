@@ -1,0 +1,17 @@
+{
+  "mcpServers": {
+    "supabase": {
+      "url": "https://mcp.supabase.com/mcp?project_ref=YOUR_SUPABASE_PROJECT_REF",
+      "headers": {}
+    },
+    "MCP_DOCKER": {
+      "command": "docker",
+      "args": ["mcp", "gateway", "run"],
+      "env": {}
+    },
+    "vercel": {
+      "type": "http",
+      "url": "https://mcp.vercel.com"
+    }
+  }
+}

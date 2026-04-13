@@ -1,0 +1,18 @@
+{
+  "note": "local_anvil_only_not_mainnet_compliance",
+  "chain_id": 31337,
+  "identity_registry": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+  "eip1271_intent_adapter": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
+  "validation_registry": "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
+  "reputation_registry": "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9",
+  "deployer_address": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+  "agent_owner_address": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+  "validator_address": "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
+  "agent_id": 1,
+  "agent_uri_on_chain": "http://127.0.0.1:34120/challenge/agent-registration",
+  "validation_request_hash": "0x460129f4d9dea07b57db5a0bb58fb599a736e243e1a4c02a2a704949533a60b2",
+  "validation_response_body_keccak": "0x58116f3430930c9796a959da102bf875be809ef8a4eb24fdd6a64539167d902c",
+  "reputation_feedback_count_validator": 1,
+  "wallet_roles_doc": "docs/evidence/ANVIL_WALLET_ROLES.md",
+  "_comment": "Shape after LocalProofBundle multi-role update on a **fresh** Anvil chain. Contract addresses match deterministic deploy order only when no prior deployments exist on that chain."
+}

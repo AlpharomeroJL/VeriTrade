@@ -1,0 +1,9 @@
+{
+  "_comment": "Off-chain validation response aligned with validationResponse(response, responseURI, responseHash, tag).",
+  "requestHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+  "response": 100,
+  "responseURINote": "Optional URI to evidence JSON or audit bundle.",
+  "responseHashNote": "keccak256 of responseURI payload when not content-addressed (per EIP-8004).",
+  "tag": "veritrade.risk_router.v1",
+  "validatorAddress": "0x0000000000000000000000000000000000000000"
+}

@@ -4,7 +4,7 @@ This repository is an **overnight thin slice** for demo credibility. The followi
 
 For the **trust story** we *do* claim in-scope, see [trust-and-risk.md](trust-and-risk.md) and [challenge-alignment.md](challenge-alignment.md).
 
-**Kraken:** CLI draft is **real in code**; **live** submission via Kraken is **out of scope** unless you deliberately enable flags. **ERC-8004:** identity + URI **stub** + trust signals are **architectural alignment**, not an on-chain registry in this repo.
+**Kraken:** CLI draft is **real in code**; **live** submission via Kraken is **out of scope** unless you deliberately enable flags. **ERC-8004:** this repo ships a **draft-shaped registration file**, **API alignment fields**, and **validation/reputation example JSON** — **not** deployed Identity / Validation / Reputation registry contracts. Do **not** read “alignment” as “fully compliant.” Details: [erc8004-alignment.md](erc8004-alignment.md).
 
 ## Market data
 

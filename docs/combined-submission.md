@@ -3,11 +3,11 @@
 VeriTrade is intentionally a **single story** that satisfies **two judge lenses** at once:
 
 1. **Kraken challenge** — “Real venue path exists in the architecture; the demo runs safely on **paper** while showing **CLI-shaped** order drafts.”
-2. **Trustless / ERC-8004-flavored agent challenge** — “The agent has **identity**, **policy**, **binding intents**, and **validation artifacts** that could anchor on-chain reputation later.”
+2. **Trustless / ERC-8004 draft-aligned agent challenge** — “The agent has **identity surfaces**, **policy**, **binding intents**, **validation artifacts**, and an **EIP-shaped registration file** — a credible path to registry-backed trust without claiming live on-chain compliance in this repo.”
 
 ## One paragraph (paste into submission form)
 
-> VeriTrade is a governed trading agent that **never executes without a risk-router verdict** and a **canonical trade intent**. Every stage emits **validation artifacts** (database + JSON). **Paper mode** runs the full loop for judges; a **Kraken execution surface** produces **typed CLI order drafts** from the same intent so venue wiring is explicit. **Agent identity** and an optional **ERC-8004 URI stub** document how the same system attaches to **trustless agent** registries without scope creep in the hackathon window.
+> VeriTrade is a governed trading agent that **never executes without a risk-router verdict** and a **canonical trade intent** (SHA-256 commitment over binding fields). Every stage emits **validation artifacts** (database + JSON). **Paper mode** runs the full loop for judges; a **Kraken execution surface** produces **typed CLI order drafts** from the same intent so venue wiring is explicit. **ERC-8004 draft alignment** includes a real **registration JSON** (`/.well-known/agent-registration.json` + API), **`challenge.erc8004_draft`** metadata, and **validation-shaped** examples — **not** a claim of live Identity / Validation / Reputation registry deployment.
 
 ## Demo order (2–3 minutes)
 

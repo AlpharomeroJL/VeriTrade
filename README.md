@@ -61,10 +61,21 @@ Ports and URLs come **only** from `.env` (e.g. web **34110**, API **34120** — 
 |-----|-------------|
 | [docs/challenge-alignment.md](docs/challenge-alignment.md) | Rubric map: Kraken, trust, artifacts |
 | [docs/map-kraken.md](docs/map-kraken.md) | What maps to Kraken (draft, routing, flags) |
-| [docs/map-erc8004.md](docs/map-erc8004.md) | Identity / validation / intent binding |
+| [docs/map-erc8004.md](docs/map-erc8004.md) | Identity / validation / intent binding (draft-aligned language) |
+| [docs/erc8004-alignment.md](docs/erc8004-alignment.md) | What is implemented vs scaffolded vs **not** claimed for EIP-8004 |
+| [docs/erc8004-compliance-matrix.md](docs/erc8004-compliance-matrix.md) | Requirement × status × **proof** (evidence spine) |
+| [docs/erc8004-compliance-checklist.md](docs/erc8004-compliance-checklist.md) | Summary checklist (points to matrix) |
+| [docs/evidence/ERC8004_LOCAL_PROOF_WALKTHROUGH.md](docs/evidence/ERC8004_LOCAL_PROOF_WALKTHROUGH.md) | Anvil + `LocalProofBundle` + `prove_local_slice` |
+| [docs/evidence/PUBLIC_SEPOLIA_DEPLOY.md](docs/evidence/PUBLIC_SEPOLIA_DEPLOY.md) | **Public Sepolia** deploy + mint + HTTPS `/.well-known` binding (operator-funded) |
+| [docs/deployment/VERCEL_WEB.md](docs/deployment/VERCEL_WEB.md) | Vercel **web** root (`apps/web`), `VITE_API_BASE_URL`, prebuild `/.well-known` sync |
+| [docs/evidence/ANVIL_WALLET_ROLES.md](docs/evidence/ANVIL_WALLET_ROLES.md) | Anvil accounts **0/1/2** roles, RPC, MetaMask/Rabby |
+| [`.env.anvil.example`](.env.anvil.example) | Local-only env hints (public Anvil keys) |
+| [docs/intent-envelope.md](docs/intent-envelope.md) | SHA-256 intent commitment vs optional EIP-712 signing (dev) |
 | [docs/combined-submission.md](docs/combined-submission.md) | One narrative for dual-track reads |
 
-**API:** `GET /overview` (includes `challenge`) · `GET /challenge/context`
+**API:** `GET /overview` (includes `challenge`) · `GET /challenge/context` · `GET /challenge/agent-registration` · `GET /challenge/agent-registration/verify` · `GET /challenge/erc8004/onchain-read` · `GET /challenge/erc8004-shapes`
+
+VeriTrade is **ERC-8004 draft-aligned** (registration file, identity surfaces, validation-shaped examples). **Public Sepolia** deployment is **operator-run** via Foundry (`SepoliaDeployAndMint`, `PUBLIC_SEPOLIA_DEPLOY.md`); it is **not** a protocol-mandated canonical mainnet registry. The product is **not** claiming full EIP compliance — see [docs/erc8004-alignment.md](docs/erc8004-alignment.md).
 
 ---
 
@@ -94,7 +105,8 @@ python -m pytest tests -q
 | `apps/api/` | FastAPI app, services, Kraken adapters, challenge context |
 | `apps/web/` | Vite + React operator console |
 | `tests/` | Pytest (integration, risk, intent, lanes, viz) |
-| `scripts/` | `dev-api.ps1`, `dev-web.ps1` |
+| `scripts/` | `dev-api.ps1`, `dev-web.ps1`, `export_agent_registration_static.py` |
+| `local-registry/` | Optional Foundry contracts for **Anvil-only** Identity / Validation / Reputation event demos |
 | `docs/` | Architecture, trust, challenge maps, lean submission notes |
 | `compose.yaml` | Optional Postgres/Redis — **not** required for SQLite demo |
 

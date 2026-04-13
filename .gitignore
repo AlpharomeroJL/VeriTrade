@@ -50,15 +50,26 @@ logs/*
 data/*
 !data/.gitkeep
 
+# Operator-generated Sepolia / public testnet proof (never commit funded deploy artifacts)
+local-registry/evidence/sepolia-public-proof.json
+
 # Optional local scratch
 *.log
 .cache/
 
+# Local tool binaries (e.g. Foundry unpacked for Windows dev — see local-registry README)
+.tools/
+
 # --- OS / editor ---
 .DS_Store
 Thumbs.db
+# Cursor (local-only: may contain machine paths, account-bound MCP URLs, or tokens)
 .cursor/
 .vscode/
 .idea/
 *.swp
 *~
+
+# Vercel CLI link metadata (local / machine-specific)
+.vercel/
+apps/web/.vercel/

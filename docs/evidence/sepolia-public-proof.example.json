@@ -1,0 +1,13 @@
+{
+  "note": "veritrade_operator_deployed_sepolia_not_protocol_canonical_registry",
+  "chain_id": 11155111,
+  "identity_registry": "0x0000000000000000000000000000000000000001",
+  "eip1271_intent_adapter": "0x0000000000000000000000000000000000000002",
+  "validation_registry": "0x0000000000000000000000000000000000000003",
+  "reputation_registry": "0x0000000000000000000000000000000000000004",
+  "deployer_address": "0x0000000000000000000000000000000000000005",
+  "agent_owner_address": "0x0000000000000000000000000000000000000006",
+  "agent_id": 1,
+  "agent_uri_on_chain": "https://your-deployment.example/.well-known/agent-registration.json",
+  "public_agent_registration_url_env": "PUBLIC_AGENT_REGISTRATION_URL"
+}

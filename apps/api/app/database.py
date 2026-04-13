@@ -66,6 +66,9 @@ def _sqlite_patch_legacy_schema(engine) -> None:
         ("executions", "market_type", "VARCHAR(16)"),
         ("executions", "strategy_family", "VARCHAR(64)"),
         ("lane_performance_snapshots", "skip_count", "INTEGER DEFAULT 0"),
+        ("trade_intents", "eip712_signature", "TEXT"),
+        ("trade_intents", "eip712_signer", "VARCHAR(64)"),
+        ("trade_intents", "eip712_chain_id", "INTEGER"),
     ]
     with engine.begin() as conn:
         seen: dict[str, set[str]] = {}

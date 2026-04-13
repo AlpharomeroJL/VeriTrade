@@ -2,7 +2,7 @@
 
 This page is the **submission narrative** for trust and risk discipline. Pair it with the live dashboard: **badges**, **validation artifact trace**, and **operator controls**.
 
-**Hackathon rubric map:** [challenge-alignment.md](challenge-alignment.md) · **Kraken / ERC-8004 breakdown:** [map-kraken.md](map-kraken.md), [map-erc8004.md](map-erc8004.md)
+**Hackathon rubric map:** [challenge-alignment.md](challenge-alignment.md) · **Kraken / ERC-8004 breakdown:** [map-kraken.md](map-kraken.md), [map-erc8004.md](map-erc8004.md), [erc8004-alignment.md](erc8004-alignment.md)
 
 ## One sentence
 

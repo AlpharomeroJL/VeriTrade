@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "prebuild": "node ./scripts/sync-public-agent-registration.mjs",
     "build": "vite build",
     "preview": "vite preview",
     "test:e2e": "playwright test --project=chromium",

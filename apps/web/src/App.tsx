@@ -220,9 +220,23 @@ function LivePaperDecisionStack({
   );
 }
 
+type Erc8004DraftSurfaces = {
+  eip_draft_url: string;
+  alignment: string;
+  identity_registry: string;
+  agent_uri_effective: string | null;
+  agent_registration_url: string;
+  agent_registration_static_url: string;
+  agent_wallet_placeholder: string | null;
+  on_chain_validation_attested: boolean;
+  intent_binding_scheme: string;
+  validation_request_hash_algorithm: string;
+};
+
 type ChallengeContext = {
   agent_id: string;
   erc8004_agent_uri_stub: string | null;
+  erc8004_draft: Erc8004DraftSurfaces;
   policy_version: string;
   intent_commitment_algorithm: string;
   trust_signals: string[];
@@ -292,6 +306,7 @@ type CycleHistoryItem = {
 type ChallengeFit = {
   kraken_execution_surface_aligned: boolean;
   erc8004_identity_hooks: boolean;
+  erc8004_agent_registration_available: boolean;
   combined_submission_story: boolean;
   paper_safe_demo_mode: boolean;
   risk_router_active: boolean;
@@ -1418,7 +1433,7 @@ function ChallengeStrip({ challenge }: { challenge: ChallengeContext | undefined
             <p className="text-sm leading-relaxed text-slate-400">
               <span className="font-mono text-[11px] text-slate-600">
                 Agent identity
-                <Tip text="Who is acting — optional ERC-8004-style URI for trust and discoverability." />
+                <Tip text="Who is acting — ERC-8004 draft-aligned surfaces; optional URI stub for a future on-chain agentURI." />
               </span>{" "}
               <span className="break-all text-slate-200">{challenge.agent_id}</span>
               <span className="mx-2 text-slate-700">·</span>
@@ -1459,9 +1474,28 @@ function ChallengeStrip({ challenge }: { challenge: ChallengeContext | undefined
           <div className="mt-8 border-t border-white/[0.04] pt-8">
             <div className="grid gap-6 lg:grid-cols-2">
               <div className="rounded-xl bg-black/20 p-5">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-600">ERC-8004 URI stub</p>
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-600">ERC-8004 URI stub (optional)</p>
                 <p className="mt-3 break-all font-mono text-xs leading-relaxed text-slate-400">
                   {challenge.erc8004_agent_uri_stub || "— configure ERC8004_AGENT_URI_STUB"}
+                </p>
+                <p className="mt-5 text-[10px] font-semibold uppercase tracking-wider text-slate-600">Effective agentURI (demo)</p>
+                <p className="mt-2 break-all font-mono text-[10px] leading-relaxed text-slate-500">
+                  {challenge.erc8004_draft.agent_uri_effective || "—"}
+                </p>
+                <p className="mt-4 text-[10px] font-semibold uppercase tracking-wider text-slate-600">Registration file</p>
+                <p className="mt-2 break-all font-mono text-[10px] text-teal-500/90">
+                  <a href={challenge.erc8004_draft.agent_registration_url} className="hover:underline" target="_blank" rel="noreferrer">
+                    {challenge.erc8004_draft.agent_registration_url}
+                  </a>
+                </p>
+                <p className="mt-2 break-all font-mono text-[10px] text-slate-500">
+                  <a href={challenge.erc8004_draft.agent_registration_static_url} className="hover:underline" target="_blank" rel="noreferrer">
+                    {challenge.erc8004_draft.agent_registration_static_url}
+                  </a>
+                </p>
+                <p className="mt-3 text-[10px] text-slate-600">
+                  Identity registry: {challenge.erc8004_draft.identity_registry}. On-chain validation attested:{" "}
+                  {challenge.erc8004_draft.on_chain_validation_attested ? "yes" : "no"}.
                 </p>
                 <p className="mt-5 text-[10px] font-semibold uppercase tracking-wider text-slate-600">Intent commitment</p>
                 <p className="mt-2 font-mono text-xs text-slate-500">{challenge.intent_commitment_algorithm}</p>
@@ -1625,7 +1659,7 @@ function AgentIdentityTrustPanel({ overview }: { overview: Overview | null }) {
       <div className="border-b border-white/[0.04] px-6 py-5">
         <p id="agent-trust-heading" className="text-[10px] font-semibold uppercase tracking-[0.28em] text-slate-600">
           Agent identity &amp; trust
-          <Tip text="ERC-8004-style hooks plus a simple score from artifacts and risk outcomes — quick read on whether the desk is behaving." />
+          <Tip text="ERC-8004 draft-aligned identity surfaces plus a simple score from artifacts and risk outcomes — quick read on whether the desk is behaving." />
         </p>
         <h3 className="mt-2 text-lg font-semibold text-white">Identity &amp; posture</h3>
       </div>
@@ -1742,8 +1776,13 @@ function ChallengeFitPanel({ overview }: { overview: Overview | null }) {
         />
         <FitRow
           ok={f.erc8004_identity_hooks}
-          label="ERC-8004-style identity / URI hook"
-          hint="Agent id + optional URI stub for discoverability (configure stub in env for a green check)."
+          label="ERC-8004 draft URI stub (optional on-chain pointer)"
+          hint="Green when ERC8004_AGENT_URI_STUB is set — future agentURI after Identity Registry mint."
+        />
+        <FitRow
+          ok={f.erc8004_agent_registration_available}
+          label="ERC-8004 draft registration file exposed"
+          hint="GET /challenge/agent-registration plus /.well-known/agent-registration.json (see docs/erc8004-alignment.md)."
         />
         <FitRow
           ok={f.combined_submission_story}

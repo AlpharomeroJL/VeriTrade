@@ -1,0 +1,18 @@
+{
+  "_comment": "Off-chain example shaped like EIP-8004 validationRequest payload behind requestURI. VeriTrade maps risk+intent+execution artifacts into this envelope for documentation — not an on-chain submission.",
+  "veritradeVersion": "1",
+  "agentIdConfig": "veritrade-agent-demo",
+  "validatorAddressPlaceholder": "0x0000000000000000000000000000000000000000",
+  "requestURI": "https://example.invalid/validation/requests/example-001.json",
+  "inputs": {
+    "market_snapshot_id": 0,
+    "signal_id": 0,
+    "risk_decision_id": 0,
+    "intent_uuid": "00000000-0000-0000-0000-000000000000"
+  },
+  "outputs": {
+    "risk_verdict": "allow",
+    "execution_status": "filled_paper"
+  },
+  "requestHashNote": "On EIP-8004 chain, requestHash = keccak256(commitment to this payload). VeriTrade uses the same keccak256 helper for draft-shaped examples; intent binding remains SHA-256 over canonical intent JSON (see docs/intent-envelope.md)."
+}
